@@ -1,0 +1,42 @@
+# --- Python / FastAPI (backend) ---
+__pycache__/
+*.py[cod]
+*.so
+.venv/
+venv/
+env/
+.env
+.env.*
+!.env.example
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# --- Node / Next.js (frontend) ---
+node_modules/
+.next/
+out/
+build/
+dist/
+.npm/
+.pnpm-store/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# --- Secrets & credentials ---
+*.pem
+*.key
+secrets.json
+
+# --- OS / editor noise ---
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+
+# --- Claude Code (user-specific settings, not shared) ---
+.claude/settings.local.json
