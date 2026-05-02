@@ -56,3 +56,25 @@ def db_health():
             "database": "connection_failed",
             "detail": str(e),
         }
+
+
+@app.get("/db-tables")
+def db_tables():
+    """Verify each expected table exists by attempting a 1-row read."""
+    if supabase is None:
+        return {"status": "error", "detail": "Supabase client not initialized"}
+    expected = ["stocks", "price_history", "financials", "valuations"]
+    results: dict[str, dict] = {}
+    all_ok = True
+    for name in expected:
+        try:
+            supabase.table(name).select("id").limit(1).execute()
+            results[name] = {"status": "exists"}
+        except Exception as e:
+            all_ok = False
+            results[name] = {
+                "status": "missing",
+                "error_class": e.__class__.__name__,
+                "detail": str(e)[:300],
+            }
+    return {"status": "ok" if all_ok else "error", "tables": results}

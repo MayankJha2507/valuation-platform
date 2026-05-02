@@ -29,4 +29,13 @@ Format per entry:
 
 ---
 
+## 2026-05-02 — Always include explicit GRANTs in migrations
+
+- **Context:** First migration (001_initial_schema.sql) set up tables + RLS policies but no GRANT statements. Even the `service_role` key got "permission denied" (Postgres error 42501).
+- **Decision:** Add explicit `GRANT` statements in every migration that touches schema. Don't rely on Supabase's default privileges.
+- **Why:** Supabase has two independent permission gates: (1) GRANT — can this role touch the table at all, (2) RLS — which rows can it see. Recent Supabase projects no longer auto-grant on new public-schema tables, so RLS policies alone aren't enough. Without GRANT, the request is rejected before RLS even runs.
+- **Implications:** Every future migration that creates a table needs corresponding `GRANT ALL ... TO service_role` and `GRANT SELECT ... TO anon, authenticated` (or whichever subset matches the access intent). Documented in 002_grants.sql.
+
+---
+
 <!-- Add new entries above this line -->
