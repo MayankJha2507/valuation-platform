@@ -47,4 +47,32 @@ Format per entry:
 
 ---
 
+## 2026-05-03 — Price history data scope (4 decisions)
+
+- **Context:** Starting to fetch real price data from yfinance. Needed to lock in scope before writing any pipeline code.
+
+- **Decision 1 — Years of history: 5 years.**
+  - Covers all three chart views (1Y, 3Y, 5Y) and the 5-year average ratios in our valuation schema.
+  - ~1,250 trading days × 50 stocks = ~62,500 rows. Tiny for Postgres.
+  - Misses the COVID crash (March 2020 is ~6 years ago). Acceptable for MVP; extend later by re-running fetch with `years=7`.
+
+- **Decision 2 — Adjusted vs unadjusted: store both, use `adj_close` for all analysis.**
+  - `adj_close` accounts for stock splits and dividends — essential for correct charts and historical ratio comparisons.
+  - `close` is the actual traded price on the day — stored for reference.
+  - Fetched with `auto_adjust=False` so yfinance returns both columns.
+  - Rule: all ratio calculations and charts use `adj_close`. Only show `close` if displaying "actual price on that date."
+
+- **Decision 3 — Gaps and missing data: store what yfinance returns; no gap-filling.**
+  - NSE has ~15–20 holidays per year — missing rows on those dates is correct behavior.
+  - Re-running the fetch script fills any gaps via upsert (idempotent).
+  - Nifty 50 delistings are extremely unlikely for MVP; if a stock leaves the index, set `is_active=false` in `stocks` — historical price rows stay.
+  - Step 4 sanity check is the safety net for data quality issues.
+
+- **Decision 4 — Timezone: plain `DATE` = IST trading date; no timezone math.**
+  - `price_history.date` is a Postgres `DATE` — no time component, no ambiguity.
+  - yfinance labels each row by the NSE session date in IST. We strip the time and store the date as-is.
+  - Never store UTC midnight timestamps that would shift to the wrong date when read back in IST.
+
+---
+
 <!-- Add new entries above this line -->
