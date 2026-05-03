@@ -38,4 +38,13 @@ Format per entry:
 
 ---
 
+## 2026-05-03 — yfinance ticker format for NSE stocks
+
+- **Context:** Two Nifty 50 symbols contain special characters (`M&M`, `BAJAJ-AUTO`). Needed to confirm yfinance handles them before committing to the pipeline.
+- **Decision:** Use the raw NSE symbol with `.NS` suffix as-is: `M&M.NS`, `BAJAJ-AUTO.NS`. No mapping or escaping required.
+- **Why:** yfinance 1.3.0 tested successfully for all three representative tickers (`RELIANCE.NS`, `M&M.NS`, `BAJAJ-AUTO.NS`) — all returned valid price data. No special handling needed.
+- **Implications:** Our `ticker` column in the `stocks` table stores the yfinance-ready format (e.g. `M&M.NS`). If a future stock in the Nifty 50 has a different convention, we'd revisit. The two currently affected symbols are confirmed working.
+
+---
+
 <!-- Add new entries above this line -->
