@@ -75,4 +75,13 @@ Format per entry:
 
 ---
 
+## 2026-05-05 — Supabase PostgREST max-rows cap and cursor pagination
+
+- **Context:** Building `GET /stocks/{symbol}/prices?days=1825` (5-year request). Discovered that Supabase's PostgREST enforces a server-side `max-rows=1000` that silently truncates any query — even those with an explicit `.limit()` above 1000.
+- **Decision:** Implement cursor-based pagination inside the API endpoint (`_fetch_prices_paginated`). Makes ≤1000-row batches internally, advancing by date, and returns a single stitched response to the caller.
+- **Why cursor over offset:** Offset pagination (`OFFSET 1000 LIMIT 1000`) can skip or duplicate rows if data changes between pages. Cursor pagination uses `date > last_fetched_date` which is stable.
+- **Implications:** Any future endpoint returning potentially > 1000 rows needs the same pattern. Worth noting for financials (5 years × 4 quarters = 20 rows — not an issue) and price history (up to ~1250 rows — needs pagination).
+
+---
+
 <!-- Add new entries above this line -->

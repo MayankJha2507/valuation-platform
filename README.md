@@ -25,14 +25,22 @@ A web app to help Indian retail investors evaluate Nifty 50 stocks. Users search
 
 ```
 valuation-platform/
-├── backend/          FastAPI app — valuation logic, data fetching, API
-│   ├── .venv/        Python virtual environment (gitignored)
-│   ├── main.py       FastAPI entry point
+├── backend/
+│   ├── data/
+│   │   └── fetch_prices.py     fetches OHLCV from yfinance → Supabase
+│   ├── scripts/
+│   │   └── seed_nifty50.py     one-off: seeds stocks table with Nifty 50
+│   ├── sql/
+│   │   ├── 001_initial_schema.sql
+│   │   └── 002_grants.sql
+│   ├── .venv/                  Python virtual environment (gitignored)
+│   ├── .env.example            credential template (copy → .env, fill values)
+│   ├── main.py                 FastAPI entry point + all API endpoints
 │   └── requirements.txt
-├── frontend/         Next.js app (not yet scaffolded)
+├── frontend/                   Next.js app (not yet scaffolded)
 ├── docs/
-│   └── PRD.md        Product requirements (placeholder)
-├── DECISIONS.md      Running log of technical/product decisions
+│   └── PRD.md
+├── DECISIONS.md                running log of technical/product decisions
 ├── README.md
 └── .gitignore
 ```
@@ -64,6 +72,53 @@ python3.13 -m venv .venv
 .venv/bin/pip install -r requirements.txt
 ```
 
+## API endpoints
+
+| Method | Path | Description |
+|---|---|---|
+| GET | `/health` | Confirms the server is running |
+| GET | `/db-health` | Confirms Supabase connection is live |
+| GET | `/db-tables` | Verifies all 4 expected tables exist |
+| GET | `/stocks/{symbol}/prices` | Price history for an NSE symbol |
+
+### `/stocks/{symbol}/prices`
+
+- **symbol** — NSE symbol, e.g. `RELIANCE`, `BAJAJ-AUTO`, `M%26M` (URL-encode `&` as `%26`)
+- **days** — query param, 1–1825 (default 365). Returns that many calendar days of history.
+
+```bash
+# Last year of RELIANCE prices
+curl http://localhost:8000/stocks/RELIANCE/prices
+
+# Full 5 years for M&M (& must be URL-encoded)
+curl "http://localhost:8000/stocks/M%26M/prices?days=1825"
+```
+
+Response shape:
+```json
+{
+  "symbol": "RELIANCE",
+  "company_name": "Reliance Industries Ltd.",
+  "ticker": "RELIANCE.NS",
+  "sector": "Oil Gas & Consumable Fuels",
+  "days_requested": 365,
+  "rows": 247,
+  "date_from": "2025-05-05",
+  "date_to": "2026-04-30",
+  "prices": [
+    { "date": "2025-05-05", "open": 1431.0, "high": 1439.5, "low": 1426.9,
+      "close": 1431.3, "adj_close": 1425.61, "volume": 12685649 }
+  ]
+}
+```
+
 ## Status
 
-Foundation scaffolded. No application logic yet — just a `/health` endpoint to confirm the server runs.
+- ✅ FastAPI backend running with Supabase connection
+- ✅ Database schema: `stocks`, `price_history`, `financials`, `valuations`
+- ✅ Nifty 50 master list seeded (50 stocks)
+- ✅ Price history fetched for RELIANCE, M&M, BAJAJ-AUTO (~3,700 rows)
+- ✅ `/stocks/{symbol}/prices` endpoint with 5-year support
+- 🔲 Frontend (Next.js) — not yet started
+- 🔲 Financials data fetch — not yet started
+- 🔲 Valuation engine — not yet started
