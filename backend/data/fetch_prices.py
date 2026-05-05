@@ -50,11 +50,14 @@ def fetch_and_store_prices(nse_symbol: str, years: int = 5) -> dict:
     client = _get_supabase()
 
     # --- 1. Look up stock_id from the stocks table ---
+    # Use .limit(1) not .single(): .single() raises on 0 rows rather than
+    # returning empty, so we'd get an unhandled exception instead of our
+    # clear ValueError message.
     result = (
         client.table("stocks")
         .select("id, ticker, company_name")
         .eq("nse_symbol", nse_symbol)
-        .single()
+        .limit(1)
         .execute()
     )
     if not result.data:
@@ -62,9 +65,9 @@ def fetch_and_store_prices(nse_symbol: str, years: int = 5) -> dict:
             f"Symbol '{nse_symbol}' not found in stocks table. "
             "Check that it's a valid Nifty 50 NSE symbol."
         )
-    stock_id: int = result.data["id"]
-    ticker: str = result.data["ticker"]          # e.g. "RELIANCE.NS"
-    company: str = result.data["company_name"]
+    stock_id: int = result.data[0]["id"]
+    ticker: str = result.data[0]["ticker"]       # e.g. "RELIANCE.NS"
+    company: str = result.data[0]["company_name"]
 
     print(f"Fetching {years}y of prices for {company} ({ticker}) ...")
 
