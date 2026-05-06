@@ -147,6 +147,76 @@ def get_stock_prices(
     }
 
 
+@app.get("/stocks/{symbol}/financials")
+def get_stock_financials(
+    symbol: str,
+    period_type: str = Query(default="annual", pattern="^(annual|quarterly|both)$"),
+):
+    """Return stored financials for a Nifty 50 stock.
+
+    - **symbol**: NSE symbol, e.g. RELIANCE, TCS
+    - **period_type**: 'annual' (default), 'quarterly', or 'both'
+
+    All monetary values are in raw INR (rupees). Divide by 10,000,000 for crore.
+    """
+    if supabase is None:
+        raise HTTPException(status_code=503, detail="Database client not initialised")
+
+    symbol = symbol.upper()
+
+    stock_result = (
+        supabase.table("stocks")
+        .select("id, nse_symbol, ticker, company_name, sector")
+        .eq("nse_symbol", symbol)
+        .limit(1)
+        .execute()
+    )
+    if not stock_result.data:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Symbol '{symbol}' not found. Must be a valid Nifty 50 NSE symbol.",
+        )
+    stock = stock_result.data[0]
+
+    fields = (
+        "period_type, period_end_date, fiscal_year, fiscal_quarter, "
+        "revenue, gross_profit, operating_income, net_income, eps, "
+        "total_assets, total_liabilities, total_equity, "
+        "cash_and_equivalents, total_debt, shares_outstanding, "
+        "operating_cash_flow, capital_expenditure, free_cash_flow"
+    )
+
+    def _fetch(ptype: str) -> list[dict]:
+        return (
+            supabase.table("financials")
+            .select(fields)
+            .eq("stock_id", stock["id"])
+            .eq("period_type", ptype)
+            .order("period_end_date", desc=True)
+            .limit(20)
+            .execute()
+            .data
+        )
+
+    if period_type == "both":
+        annual = _fetch("annual")
+        quarterly = _fetch("quarterly")
+    elif period_type == "quarterly":
+        annual, quarterly = [], _fetch("quarterly")
+    else:
+        annual, quarterly = _fetch("annual"), []
+
+    return {
+        "symbol": stock["nse_symbol"],
+        "company_name": stock["company_name"],
+        "ticker": stock["ticker"],
+        "sector": stock["sector"],
+        "note": "Monetary values in raw INR. Divide by 10,000,000 for ₹ crore.",
+        "annual": annual,
+        "quarterly": quarterly,
+    }
+
+
 @app.get("/db-tables")
 def db_tables():
     """Verify each expected table exists by attempting a 1-row read."""
