@@ -27,9 +27,11 @@ A web app to help Indian retail investors evaluate Nifty 50 stocks. Users search
 valuation-platform/
 ├── backend/
 │   ├── data/
-│   │   └── fetch_prices.py     fetches OHLCV from yfinance → Supabase
+│   │   ├── fetch_prices.py     fetches OHLCV from yfinance → Supabase
+│   │   └── fetch_financials.py fetches income / balance / cashflow → Supabase
 │   ├── scripts/
-│   │   └── seed_nifty50.py     one-off: seeds stocks table with Nifty 50
+│   │   ├── seed_nifty50.py     one-off: seeds stocks table with Nifty 50
+│   │   └── fetch_all_prices.py one-off: fetches prices for all 50 stocks
 │   ├── sql/
 │   │   ├── 001_initial_schema.sql
 │   │   └── 002_grants.sql
@@ -80,6 +82,7 @@ python3.13 -m venv .venv
 | GET | `/db-health` | Confirms Supabase connection is live |
 | GET | `/db-tables` | Verifies all 4 expected tables exist |
 | GET | `/stocks/{symbol}/prices` | Price history for an NSE symbol |
+| GET | `/stocks/{symbol}/financials` | Annual + quarterly financials |
 
 ### `/stocks/{symbol}/prices`
 
@@ -117,8 +120,10 @@ Response shape:
 - ✅ FastAPI backend running with Supabase connection
 - ✅ Database schema: `stocks`, `price_history`, `financials`, `valuations`
 - ✅ Nifty 50 master list seeded (50 stocks)
-- ✅ Price history fetched for RELIANCE, M&M, BAJAJ-AUTO (~3,700 rows)
-- ✅ `/stocks/{symbol}/prices` endpoint with 5-year support
-- 🔲 Frontend (Next.js) — not yet started
-- 🔲 Financials data fetch — not yet started
-- 🔲 Valuation engine — not yet started
+- ✅ Price history fetched for all 50 Nifty stocks (~60,000 rows)
+- ✅ `/stocks/{symbol}/prices` endpoint with 5-year support and pagination
+- ✅ Financials fetched for RELIANCE, TCS, HDFCBANK (annual + quarterly)
+- ✅ `/stocks/{symbol}/financials` endpoint (annual / quarterly / both)
+- 🔲 Financials fetch for all 50 stocks — next session
+- 🔲 Valuation engine (DCF + ratios) — upcoming
+- 🔲 Frontend (Next.js) — upcoming
